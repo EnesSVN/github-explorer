@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GitHub Explorer (Next.js + TypeScript)
 
-## Getting Started
+Gerçek GitHub API verisiyle çalışan küçük bir keşif aracı. Hız, tip güvenliği ve net mimari kararlar üzerine kuruldu.
 
-First, run the development server:
+## Stack & İlke
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **Next.js App Router** → SSR/ISR/Streaming için modern API.
+- **TypeScript (strict)** → DTO’ları utility types ile türetiyoruz.
+- **Tailwind v3 + Design Tokens** → HSL tabanlı açık/koyu uyumlu renk sistemi.
+- **Result<T>** → throw yerine `ok/data | error` birliğiyle **tip güvenli hata akışı**.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Sayfalar & Render Stratejisi
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `/gh/[user]` → **ISR (revalidate: 60)**. Profil **genel** ve sık değişmez → CDN hızında açılış + dakikalık yenileme.
+- `/gh/[user]/repos` → **ISR (60s)**. Liste herkese aynı; arama/filtre **client-side** (rate-limit yemeden anında UX).
+- `/gh/[user]/[repo]` → **Streaming SSR + ISR (60s)**. Header küçük veri **hemen**; Contributors & Issues ayrı `<Suspense>` ile **akış**.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Tipler (örnekler)
 
-## Learn More
+- `GhUser`, `GhRepo`, `GhRepoDetail`, `GhContributor`, `GhIssue` → geniş JSON’u **daraltıyoruz** (sadece gereken alanlar).
+- Patch/DTO mantığı için proje genelinde:
+  - `Pick<T, K>` → “sadece şu alanlar”
+  - `Omit<T, K>` → “şu alanlar hariç”
+  - `Partial<T>` → “hepsi opsiyonel (patch)”
+  - `Readonly<T>` → “UI’da immutability”
 
-To learn more about Next.js, take a look at the following resources:
+## Neden Result<T>?
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `try/catch` sadece **throw**’u yakalar; 404 gibi durumlarda `fetch` **throw etmez**.
+- `Result<T>` **derleme zamanında** hata kolunu zorunlu kılar:
+  ```ts
+  const res = await api<In, Out>(...);
+  if (res.ok) render(res.data); else renderError(res.error);
+  ```
