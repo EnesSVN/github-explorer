@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { getRepoDetail } from "@/lib/gh/client";
 import Contributors from "./Contributors";
 import Issues from "./Issues";
+import RepoJump from "./RepoJump";
 
 export const revalidate = 60;
 
@@ -50,14 +51,15 @@ export default async function GhRepoDetailPage({ params }: { params: Params }) {
           </Link>
         </div>
       </header>
-
+      <div className="pt-2">
+        <RepoJump initialOwner={params.user} initialRepo={params.repo} />
+      </div>
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Contributors</h2>
         <Suspense fallback={<ContribSkeleton />}>
           <Contributors user={params.user} repo={params.repo} />
         </Suspense>
       </section>
-
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Open Issues</h2>
         <Suspense fallback={<IssuesSkeleton />}>
